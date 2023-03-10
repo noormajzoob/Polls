@@ -10,6 +10,7 @@ interface PollRepository {
     suspend fun getPollVotes(pollId: Long): Resource<List<PollSelection>>
     suspend fun getPollByUrl(urlId: String): Resource<PollWrapper>
     suspend fun getUserPolls(userId: Long): Resource<List<PollWrapper>>
+    suspend fun getUserActivePolls(userId: Long): Resource<List<PollWrapper>>
     suspend fun getActivePollsCount(userId: Long): Resource<Int>
     suspend fun getPollVotesCount(pollId: Long): Resource<Int>
     suspend fun postPoll(poll: PollWrapper): Resource<PollWrapper>

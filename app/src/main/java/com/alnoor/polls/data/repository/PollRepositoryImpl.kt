@@ -104,6 +104,33 @@ class PollRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getUserActivePolls(userId: Long): Resource<List<PollWrapper>> {
+        try {
+            if (!userPreferenceStore.isLogged())
+                return Resource.Error("User not logged!")
+
+            userPreferenceStore.getPrimitive(Constant.TOKEN_PREF_KEY)?.let { token ->
+                val response = pollService.getUserActivePolls("Bearer $token", userId)
+
+                if (response.isSuccessful){
+                    return Resource.Success(response.body()!!.data.map {
+                        pollWrapperMapper.mapFrom(it)
+                    })
+                }else{
+                    if (response.code() == 401){
+                        userRepository.regenerateToken()
+                        return getUserPolls(userId)
+                    }else{
+                        return Resource.Error("something went wrong!")
+                    }
+                }
+            }?: return Resource.Error("something went wrong!")
+        }catch (e: Exception){
+            e.printStackTrace()
+            return Resource.Failure(e)
+        }
+    }
+
     override suspend fun getUserPolls(userId: Long): Resource<List<PollWrapper>> {
         try {
             if (!userPreferenceStore.isLogged())

@@ -27,6 +27,14 @@ interface PollService {
         @Query("limit") limit: Int = Int.MAX_VALUE
     ): Response<PagingResponse<PollWrapperDto>>
 
+    @GET("/vote/user/{id}/active/list")
+    suspend fun getUserActivePolls(
+        @Header("Authorization") token: String,
+        @Path("id") id: Long,
+        @Query("offset") offset: Long = 0,
+        @Query("limit") limit: Int = Int.MAX_VALUE
+    ): Response<PagingResponse<PollWrapperDto>>
+
     @GET("/vote/user/{id}/active/count")
     suspend fun getUserActivePollsCount(
         @Header("Authorization") token: String,
