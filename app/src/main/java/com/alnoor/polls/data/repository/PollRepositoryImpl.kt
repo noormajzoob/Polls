@@ -1,7 +1,6 @@
 package com.alnoor.polls.data.repository
 
-import com.alnoor.polls.data.dto.PollSelectionWrapperDto
-import com.alnoor.polls.data.dto.SelectedVoteDto
+import com.alnoor.polls.data.dto.*
 import com.alnoor.polls.data.mapper.PollSelectionMapper
 import com.alnoor.polls.data.mapper.PollWrapperMapper
 import com.alnoor.polls.data.preference.UserPreferenceMapper
@@ -51,7 +50,7 @@ class PollRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getPollVotes(pollId: Long): Resource<List<PollSelection>> {
+    override suspend fun getPollVotes(pollId: Long, limit: Int, offset: Long): Resource<List<PollSelection>> {
         try {
             if (!userPreferenceStore.isLogged())
                 return Resource.Error("User not logged!")
@@ -66,7 +65,7 @@ class PollRepositoryImpl @Inject constructor(
                 }else{
                     if (response.code() == 401){
                         userRepository.regenerateToken()
-                        return getPollVotes(pollId)
+                        return getPollVotes(pollId, limit, offset)
                     }else{
                         return Resource.Error("Poll not found!")
                     }
@@ -86,7 +85,6 @@ class PollRepositoryImpl @Inject constructor(
 
             userPreferenceStore.getPrimitive(Constant.TOKEN_PREF_KEY)?.let { token ->
                 val response = pollService.getPollByUrl("Bearer $token", urlId)
-
                 if (response.isSuccessful){
                     return Resource.Success(pollWrapperMapper.mapFrom(response.body()!!))
                 }else{
@@ -104,7 +102,7 @@ class PollRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getUserActivePolls(userId: Long): Resource<List<PollWrapper>> {
+    override suspend fun getUserActivePolls(userId: Long, limit: Int, offset: Long): Resource<List<PollWrapper>> {
         try {
             if (!userPreferenceStore.isLogged())
                 return Resource.Error("User not logged!")
@@ -119,7 +117,7 @@ class PollRepositoryImpl @Inject constructor(
                 }else{
                     if (response.code() == 401){
                         userRepository.regenerateToken()
-                        return getUserPolls(userId)
+                        return getUserPolls(userId, limit, offset)
                     }else{
                         return Resource.Error("something went wrong!")
                     }
@@ -131,7 +129,7 @@ class PollRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getUserPolls(userId: Long): Resource<List<PollWrapper>> {
+    override suspend fun getUserPolls(userId: Long, limit: Int, offset: Long): Resource<List<PollWrapper>> {
         try {
             if (!userPreferenceStore.isLogged())
                 return Resource.Error("User not logged!")
@@ -140,13 +138,15 @@ class PollRepositoryImpl @Inject constructor(
                 val response = pollService.getUserPolls("Bearer $token", userId)
 
                 if (response.isSuccessful){
-                    return Resource.Success(response.body()!!.data.map {
+                    val data = response.body()?.data?.sortedByDescending { it.vote.timestamp }
+
+                    return Resource.Success(data!!.map {
                         pollWrapperMapper.mapFrom(it)
                     })
                 }else{
                     if (response.code() == 401){
                         userRepository.regenerateToken()
-                        return getUserPolls(userId)
+                        return getUserPolls(userId, limit, offset)
                     }else{
                         return Resource.Error("something went wrong!")
                     }
@@ -208,20 +208,32 @@ class PollRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun postPoll(poll: PollWrapper): Resource<PollWrapper> {
+    override suspend fun postPoll(title: String, duration: Int, chooses: List<String>): Resource<PollWrapper> {
         try {
             if (!userPreferenceStore.isLogged())
                 return Resource.Error("User not logged!")
 
             userPreferenceStore.getPrimitive(Constant.TOKEN_PREF_KEY)?.let { token ->
-                val response = pollService.postPoll("Bearer $token", pollWrapperMapper.mapTo(poll))
+                val user = userPreferenceStore.getObject(Constant.USER_PREFS_KEY, userPreferenceMapper)
+                val response = pollService.postPoll("Bearer $token", PollWrapperDto(
+                    vote = PollDto(
+                        title = title,
+                        duration = duration,
+                        user = user?.id
+                    ),
+                    chooses = chooses.map {
+                        PollChooseDto(
+                            content = it
+                        )
+                    }
+                ))
 
                 if (response.isSuccessful){
                     return Resource.Success(pollWrapperMapper.mapFrom(response.body()!!))
                 }else{
                     if (response.code() == 401){
                         userRepository.regenerateToken()
-                        return postPoll(poll)
+                        return postPoll(title, duration, chooses)
                     }else{
                         return Resource.Error("something went wrong")
                     }
