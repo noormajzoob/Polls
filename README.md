@@ -1,4 +1,4 @@
-# Toggle Button
+# Poll App
 
 Simple poll android app using jetpack compose.
 
