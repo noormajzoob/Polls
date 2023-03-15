@@ -8,7 +8,7 @@ data class ViewPollUiState(
     val votes: List<PollSelection> = emptyList(),
     val error: String? = null,
     val errorType: ErrorType? = null,
-    val loading: Boolean = false
+    val loading: Boolean = true
 )
 
 sealed class ErrorType{

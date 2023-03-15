@@ -18,4 +18,6 @@ sealed class Destination(val route: String){
         }
 
     }
+
+    object VotePoll: Destination("poll/{id}")
 }

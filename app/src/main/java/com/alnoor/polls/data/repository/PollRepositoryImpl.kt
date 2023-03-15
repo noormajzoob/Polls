@@ -246,25 +246,29 @@ class PollRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun postVote(userId: Long, chooseId: Long): Resource<String> {
+    override suspend fun postVote(chooseId: Long): Resource<String> {
         try {
             if (!userPreferenceStore.isLogged())
                 return Resource.Error("User not logged!")
 
             userPreferenceStore.getPrimitive(Constant.TOKEN_PREF_KEY)?.let { token ->
-                val response = pollService.selectVote("Bearer $token", SelectedVoteDto(
-                    choose = chooseId,
-                    user = userId
-                ))
+                userPreferenceStore.getObject(Constant.USER_PREFS_KEY, userPreferenceMapper)?.let { user ->
+                    val response = pollService.selectVote(
+                        "Bearer $token", SelectedVoteDto(
+                            choose = chooseId,
+                            user = user.id
+                        )
+                    )
 
-                if (response.isSuccessful){
-                    return Resource.Success("Vote has been selected!")
-                }else{
-                    if (response.code() == 401){
-                        userRepository.regenerateToken()
-                        return postVote(userId, chooseId)
-                    }else{
-                        return Resource.Error("something went wrong")
+                    if (response.isSuccessful) {
+                        return Resource.Success("Vote has been selected!")
+                    } else {
+                        if (response.code() == 401) {
+                            userRepository.regenerateToken()
+                            return postVote(chooseId)
+                        } else {
+                            return Resource.Error("something went wrong")
+                        }
                     }
                 }
             }?: return Resource.Error("something went wrong")

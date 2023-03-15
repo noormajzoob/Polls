@@ -1,5 +1,6 @@
 package com.alnoor.polls.presentation.screen.view_poll
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,12 +24,15 @@ class ViewPollViewModel @Inject constructor(
     val uiState get() = _uiState
 
     fun parsePoll(pollJson: String){
+
         viewModelScope.launch {
             try {
+                Log.d("Pares", pollJson)
                 val poll = pollJson.fromJson(PollWrapper::class.java)
 
                 getPollVotes(poll)
             }catch (e: Exception){
+                e.printStackTrace()
                 _uiState = uiState.copy(
                     error = "Something went wrong!",
                     errorType = ErrorType.ParseError,

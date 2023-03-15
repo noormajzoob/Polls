@@ -18,7 +18,7 @@ class UserEntityMapper: Mapper<UserDto, User> {
             id = data.id!!,
             name = data.name!!,
             email = data.email!!,
-            password = data.password!!
+            password = data.password?: ""
         )
     }
 

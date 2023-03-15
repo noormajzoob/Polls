@@ -7,4 +7,5 @@ object Constant {
     const val USER_PREFS_KEY = "user.pref"
     const val TOKEN_PREF_KEY = "token.key"
 
+    const val VOTE_DEEP_LINK = "$BASE_URL/vote"
 }

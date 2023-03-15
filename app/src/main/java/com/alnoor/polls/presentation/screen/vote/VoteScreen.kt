@@ -1,34 +1,35 @@
-package com.alnoor.polls.presentation.screen.view_poll
+package com.alnoor.polls.presentation.screen.vote
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.alnoor.polls.presentation.commons.PollItemView
+import com.alnoor.polls.presentation.screen.create_poll.Action
+import com.alnoor.polls.presentation.screen.create_poll.StateView
 import com.alnoor.polls.ui.theme.tiltFont
 
 @Composable
-fun ViewPollScreen(
+fun VoteScreen(
+    pollId: String,
     navHostController: NavHostController,
-    poll: String,
-    viewPollViewModel: ViewPollViewModel = hiltViewModel()
+    voteViewModel: VoteViewModel = hiltViewModel()
 ) {
 
-    val uiState = viewPollViewModel.uiState
-    if (uiState.poll == null) viewPollViewModel.parsePoll(pollJson = poll)
+    val uiState = voteViewModel.uiState
 
+    if (!uiState.loading && uiState.poll == null) voteViewModel.getPoll(pollId)
+    
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -48,21 +49,19 @@ fun ViewPollScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                if (uiState.errorType != null && uiState.errorType is ErrorType.NetworkError){
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedButton(onClick = viewPollViewModel::refresh) {
-                        Text(
-                            text = "Refresh"
-                        )
-                    }
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedButton(onClick = voteViewModel::refresh) {
+                    Text(
+                        text = "Refresh"
+                    )
                 }
 
             }
 
-        }
-        else{
+        }else {
+
             ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-                val (back, title, pollView, chooses, countTitle, votesList) = createRefs()
+                val (back, title, pollView, chooses, state) = createRefs()
 
                 Text(
                     text = "Poll",
@@ -105,56 +104,41 @@ fun ViewPollScreen(
                     }
                 }
 
-                uiState.poll?.chooses?.let {
-                    ChoosesView(
-                        chooses = it,
-                        modifier = Modifier
-                            .constrainAs(chooses) {
-                                start.linkTo(parent.start, 25.dp)
-                                end.linkTo(parent.end, 25.dp)
-                                top.linkTo(pollView.bottom)
-
-                                width = Dimension.fillToConstraints
-                            }
-                            .clip(RoundedCornerShape(bottomEnd = 15.dp, bottomStart = 15.dp))
-                            .background(MaterialTheme.colorScheme.tertiaryContainer)
-                            .padding(8.dp)
-                    )
-                }
-
-                Text(
-                    text = "${uiState.votes.size} votes",
-                    style = MaterialTheme.typography.headlineSmall.tiltFont(),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .constrainAs(countTitle) {
+                uiState.poll?.chooses?.let { data ->
+                    VotesChoosesList(
+                        data = data,
+                        selected = uiState.selectedChoose,
+                        onSelect = voteViewModel::setChoose,
+                        textColor = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.constrainAs(chooses){
                             start.linkTo(parent.start, 16.dp)
                             end.linkTo(parent.end, 16.dp)
-                            top.linkTo(chooses.bottom, 16.dp)
+                            top.linkTo(pollView.bottom, 16.dp)
 
                             width = Dimension.fillToConstraints
                         }
-                )
-
-                uiState.poll?.let {
-                    VotesList(
-                        data = uiState.votes,
-                        choosesMap = it.chooses.mapIndexed { index, pollChoose -> pollChoose.id to index.inc() }.toMap(),
-                        modifier = Modifier
-                            .constrainAs(votesList) {
-                                start.linkTo(parent.start, 16.dp)
-                                end.linkTo(parent.end, 16.dp)
-                                top.linkTo(countTitle.bottom, 16.dp)
-
-                                width = Dimension.fillToConstraints
-                            }.clip(RoundedCornerShape(15.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer),
-                        textColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
 
+                StateView(
+                    isPosted = false,
+                    isLoading = uiState.submitLoading,
+                    message = uiState.submitMsg,
+                    onAction = {
+                               voteViewModel.postVote()
+                    },
+                    modifier = Modifier.constrainAs(state){
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                        bottom.linkTo(parent.bottom)
+
+                        width = Dimension.fillToConstraints
+                    }
+                )
+
             }
+
         }
     }
-
+    
 }
